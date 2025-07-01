@@ -45,6 +45,10 @@
   border: 2px solid #ccc;
   border-radius: 10px;
   background-color: #f9f9f9;
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .income-input {
@@ -52,6 +56,7 @@
   font-size: 16px;
   width: 250px;
   margin-right: 10px;
+  margin-bottom: 5px;
   border: 1px solid #ddd;
   border-radius: 5px;
 }
@@ -266,6 +271,44 @@
 
 .editing-row {
   background-color: #fff3cd !important;
+}
+
+/* Budget Suggestion Section */
+.budget-suggestion-section {
+  margin: 40px 0 0 0;
+  padding: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.budget-suggestion-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+}
+
+.budget-suggestion-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Override component styles when inside this section */
+.budget-suggestion-section .budget-suggestion-container {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 15px !important;
+  padding: 25px !important;
+  margin: 0 !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
 }
 
 

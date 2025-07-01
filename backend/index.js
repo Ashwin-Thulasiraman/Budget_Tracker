@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express= require('express');
 const cors = require('cors');
 const app = express();
@@ -124,6 +125,54 @@ app.get('/predict', async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Prediction generation failed" });
+  }
+});
+
+// New endpoint for category-specific budget suggestions
+app.post('/budget-suggestions', async (req, res) => {
+  try {
+    const { selectedCategories, income } = req.body;
+    
+    // Get monthly aggregated data
+    const monthlyResult = await pool.query(`SELECT month, SUM(expense) AS total_cost FROM budget GROUP BY month ORDER BY month`);
+    const monthlyExpenses = monthlyResult.rows;
+
+    // Get category aggregated data
+    const categoryResult = await pool.query(`SELECT category, SUM(expense) AS total_cost FROM budget GROUP BY category`);
+    const categoryExpenses = categoryResult.rows;
+
+    // Get available categories for reference
+    const availableCategories = categoryExpenses.map(cat => cat.category);
+
+    // Pass all parameters to generatePrompt including income
+    const prompt = generatePrompt(monthlyExpenses, categoryExpenses, selectedCategories, selectedCategories, 30000, income);
+
+    const llmOutput = await generateForecast(prompt);
+
+    const match = llmOutput.match(/\{[\s\S]*\}/);
+    let budgetSuggestion = {};
+    if (match) {
+      try {
+        budgetSuggestion = JSON.parse(match[0]);
+      } catch (e) {
+        console.error("Failed to parse Gemini output", e);
+        budgetSuggestion = { error: "Failed to parse AI response" };
+      }
+    } else {
+      budgetSuggestion = { error: "No valid budget suggestion found in AI response" };
+    }
+
+    res.json({ 
+      budgetSuggestion, 
+      monthlyExpenses, 
+      categoryExpenses,
+      availableCategories,
+      selectedCategories,
+      income
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Budget suggestion generation failed" });
   }
 });
 

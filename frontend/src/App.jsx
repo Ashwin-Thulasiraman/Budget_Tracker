@@ -1,5 +1,5 @@
 import { useState } from 'react'
-
+import BudgetSuggestion from './BudgetSuggestion'
 import './App.css'
 import { useEffect } from 'react'
 
@@ -95,7 +95,6 @@ function App() {
         categoryCostsRes.json(),
         monthCostsRes.json()
       ]);
-
       setExpenses(expensesData);
       setCategoryCosts(categoryCostsData);
       setMonthCosts(monthCostsData);
@@ -359,7 +358,7 @@ function App() {
                       placeholder="Enter expense"
                     />
                   ) : (
-                    `$${parseFloat(expense.expense).toFixed(2)}`
+                    `${parseFloat(expense.expense).toFixed(2)}`
                   )}
                 </td>
                 <td>
@@ -475,6 +474,11 @@ function App() {
             </div>
           )}
  
+      {/* Budget Suggestion Component - Moved to bottom */}
+      <div className="budget-suggestion-section">
+        <BudgetSuggestion />
+      </div>
+
     </>
   )
 }
