@@ -17,7 +17,17 @@ const BudgetSuggestion = () => {
     try {
       const response = await fetch('http://localhost:5000/api/category-costs');
       const data = await response.json();
-      setAvailableCategories(data.map(cat => cat.category));
+      const categories = data.map(cat => cat.category);
+      
+      // Sort categories alphabetically for better UX
+      const sortedCategories = categories.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      
+      setAvailableCategories(sortedCategories);
+      
+      // Clear any previously selected categories that are no longer available
+      setSelectedCategories(prev => 
+        prev.filter(category => sortedCategories.includes(category))
+      );
     } catch (error) {
       console.error('Error fetching categories:', error);
       setError('Failed to fetch available categories');
@@ -103,18 +113,28 @@ const BudgetSuggestion = () => {
 
       <div className="category-selection">
         <h3>Select Categories</h3>
+        <p className="category-instruction">Choose the expense categories you want budget recommendations for:</p>
         <div className="category-grid">
           {availableCategories.map((category) => (
             <div
               key={category}
               className={`category-card ${selectedCategories.includes(category) ? 'selected' : ''}`}
               onClick={() => handleCategoryToggle(category)}
+              title={`Click to ${selectedCategories.includes(category) ? 'deselect' : 'select'} ${category}`}
             >
               <span className="category-name">{category}</span>
               {selectedCategories.includes(category) && <span className="check-mark">✓</span>}
             </div>
           ))}
         </div>
+        {availableCategories.length === 0 && !error && (
+          <p className="no-categories">No expense categories found. Add some expenses first to see categories.</p>
+        )}
+        {selectedCategories.length > 0 && (
+          <div className="selected-count">
+            Selected: {selectedCategories.length} categor{selectedCategories.length === 1 ? 'y' : 'ies'}
+          </div>
+        )}
       </div>
 
       <div className="action-buttons">
@@ -178,9 +198,12 @@ const BudgetSuggestion = () => {
               <div className="category-grid">
                 {/* Show all available categories, using AI predictions or fallback values */}
                 {availableCategories.map((category) => {
+                  // Try multiple variations to match AI response
                   const predictedAmount = budgetSuggestion.categoryPredictions?.[category.toLowerCase()] || 
                                         budgetSuggestion.categoryPredictions?.[category] || 
+                                        budgetSuggestion.categoryPredictions?.[category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()] ||
                                         '0';
+                  
                   const amount = typeof predictedAmount === 'string' ? 
                     parseFloat(predictedAmount.replace(/[^\d.]/g, '')) || 0 : 
                     predictedAmount;
@@ -195,7 +218,14 @@ const BudgetSuggestion = () => {
                 
                 {/* Show any additional categories from AI that aren't in available categories */}
                 {Object.entries(budgetSuggestion.categoryPredictions || {}).map(([category, amount]) => {
-                  if (!availableCategories.includes(category) && !availableCategories.includes(category.charAt(0).toUpperCase() + category.slice(1))) {
+                  // Check if this category is not already displayed above
+                  const isAlreadyDisplayed = availableCategories.some(availCat => 
+                    availCat.toLowerCase() === category.toLowerCase() ||
+                    availCat === category ||
+                    availCat.charAt(0).toUpperCase() + availCat.slice(1).toLowerCase() === category
+                  );
+                  
+                  if (!isAlreadyDisplayed) {
                     const numAmount = typeof amount === 'string' ? 
                       parseFloat(amount.replace(/[^\d.]/g, '')) || 0 : 
                       amount;

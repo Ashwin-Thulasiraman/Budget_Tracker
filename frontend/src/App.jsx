@@ -2,7 +2,7 @@ import { useState } from 'react'
 import BudgetSuggestion from './BudgetSuggestion'
 import './App.css'
 import { useEffect } from 'react'
-
+import ChatBot from './chatBot'
 function App() {
   const [expenses, setExpenses] = useState([])
   const [formData, setFormData] = useState({
@@ -95,6 +95,7 @@ function App() {
         categoryCostsRes.json(),
         monthCostsRes.json()
       ]);
+
       setExpenses(expensesData);
       setCategoryCosts(categoryCostsData);
       setMonthCosts(monthCostsData);
@@ -257,6 +258,108 @@ function App() {
         console.error('Error:', error);
       }
   }
+  // ChatBot component for interacting with Gemini API
+  function GeminiChatBot({ userId }) {
+    const [messages, setMessages] = useState([
+      { 
+        sender: 'bot', 
+        text: 'Hi! I\'m your Budget Assistant. I have access to your expense data and can help you with budgeting advice, expense analysis, and financial planning. What would you like to know?' 
+      }
+    ]);
+    const [input, setInput] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [userExpenseData, setUserExpenseData] = useState(null);
+
+    // Send message to Gemini API and get response
+    const sendMessage = async (e) => {
+      e.preventDefault();
+      if (!input.trim()) return;
+      
+      const userMessage = { sender: 'user', text: input };
+      setMessages((prev) => [...prev, userMessage]);
+      const userInput = input;
+      setInput('');
+      setLoading(true);
+
+      try {
+        // Use your backend endpoint instead of direct API call
+        const response = await fetch('http://localhost:5000/chat', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: userInput,
+            context: 'budget_chat'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('API Response:', data); // Debug log
+        
+        // Store user expense data for reference
+        if (data.userExpenseData) {
+          setUserExpenseData(data.userExpenseData);
+        }
+        
+        let botText = "Sorry, I couldn't understand that.";
+        
+        if (data.response) {
+          botText = data.response;
+        } else if (data.error) {
+          botText = `Error: ${data.error}`;
+        }
+        
+        setMessages((prev) => [...prev, { sender: 'bot', text: botText }]);
+      } catch (err) {
+        console.error('Chat error:', err);
+        setMessages((prev) => [...prev, { 
+          sender: 'bot', 
+          text: "I'm having trouble connecting right now. Please try again later." 
+        }]);
+      }
+      setLoading(false);
+    };
+
+    return (
+      <div className="chatbot-box">
+        {userExpenseData && (
+          <div className="expense-context">
+            <h4>📊 Your Current Expense Summary</h4>
+            <p><strong>Total Spent:</strong> ₹{userExpenseData.totalSpent}</p>
+            <p><strong>Total Expenses:</strong> {userExpenseData.expenseCount} individual transactions</p>
+            <p><strong>Categories:</strong> {userExpenseData.categoryExpenses?.length || 0} categories tracked</p>
+            <small>💡 I can analyze all your detailed transactions and provide personalized advice!</small>
+          </div>
+        )}
+        
+        <div className="chatbot-messages">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`chatbot-message ${msg.sender}`}>
+              <strong>{msg.sender === 'user' ? 'You' : 'Budget Bot'}:</strong> {msg.text}
+            </div>
+          ))}
+          {loading && <div className="chatbot-message bot">Budget Bot: <em>Analyzing your data...</em></div>}
+        </div>
+        <form className="chatbot-input-row" onSubmit={sendMessage}>
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Ask me about your budget, expenses, or financial advice..."
+            className="chatbot-input"
+            disabled={loading}
+          />
+          <button type="submit" className="chatbot-send" disabled={loading || !input.trim()}>Send</button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <>
       <h1>Welcome to Budget Tracker</h1>
@@ -478,7 +581,10 @@ function App() {
       <div className="budget-suggestion-section">
         <BudgetSuggestion />
       </div>
-
+      <div className="chatbot-section">
+        <h2>Chat with Budget Bot</h2>
+        <GeminiChatBot userId="user123" />
+      </div>
     </>
   )
 }

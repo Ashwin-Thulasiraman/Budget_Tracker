@@ -176,6 +176,81 @@ app.post('/budget-suggestions', async (req, res) => {
   }
 });
 
+// Chat endpoint for the chatbot
+app.post('/chat', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Get all individual expenses for detailed context
+    const allExpensesResult = await pool.query(`SELECT * FROM budget ORDER BY month, category`);
+    const allExpenses = allExpensesResult.rows;
+
+    // Get summary data for context
+    const monthlyResult = await pool.query(`SELECT month, SUM(expense) AS total_cost FROM budget GROUP BY month ORDER BY month`);
+    const monthlyExpenses = monthlyResult.rows;
+
+    const categoryResult = await pool.query(`SELECT category, SUM(expense) AS total_cost FROM budget GROUP BY category`);
+    const categoryExpenses = categoryResult.rows;
+
+    // Calculate total expenses
+    const totalSpent = categoryExpenses.reduce((sum, cat) => sum + parseFloat(cat.total_cost), 0);
+
+    // Create detailed expense breakdown for AI
+    const expenseBreakdown = allExpenses.map(exp => 
+      `${exp.month} - ${exp.category}: ₹${exp.expense} (ID: ${exp.id})`
+    ).join('\n');
+
+    // Create a budget-focused prompt with user's actual detailed data
+    let prompt = `You are a helpful budget and financial assistant. The user is asking: "${message}"
+
+User's Detailed Expense Data:
+${expenseBreakdown}
+
+Summary:
+Monthly Totals: ${monthlyExpenses.map(m => `${m.month}: ₹${m.total_cost}`).join(', ')}
+Category Totals: ${categoryExpenses.map(c => `${c.category}: ₹${c.total_cost}`).join(', ')}
+Total Amount Spent: ₹${totalSpent.toFixed(2)}
+Total Number of Expenses: ${allExpenses.length}
+
+Please provide helpful, practical advice about budgeting, expense tracking, saving money, or financial planning based on their actual detailed spending data. 
+
+If the question is not related to finances or budgeting, gently redirect the conversation back to financial topics.`;
+
+    // If context is budget_chat, add more specific context
+    if (context === 'budget_chat') {
+      prompt += `\n\nThis user is actively using a budget tracking application and has the detailed expense data shown above. 
+      Provide relevant information to their request in under 100 words.Talk about the trends if they ask anything related to their expenses`;
+    }
+
+    const llmOutput = await generateForecast(prompt);
+    
+    // Clean up the response
+    const cleanedResponse = llmOutput.replace(/^\s*[\{\[].*?[\}\]]\s*/, '').trim();
+    
+    res.json({ 
+      response: cleanedResponse || "I'm here to help with your budgeting questions! What would you like to know?",
+      timestamp: new Date().toISOString(),
+      userExpenseData: {
+        allExpenses,
+        categoryExpenses,
+        monthlyExpenses,
+        totalSpent: totalSpent.toFixed(2),
+        expenseCount: allExpenses.length
+      }
+    });
+  } catch (err) {
+    console.error('Chat error:', err.message);
+    res.status(500).json({ 
+      error: "I'm having trouble responding right now. Please try again.",
+      details: err.message 
+    });
+  }
+});
+
 app.listen(5000,()=>{
     console.log("Server up and running on port 5000");
 })

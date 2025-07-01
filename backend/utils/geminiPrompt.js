@@ -11,7 +11,6 @@ ${income ? `The user's monthly income is ₹${income}. Suggest a suitable saving
 
 Rules:
 - Do NOT exceed expenditure where expenditure=income-suitable_savings_amount.
-
 - Respond only with a valid JSON object. No explanations or comments.
 `;
 
