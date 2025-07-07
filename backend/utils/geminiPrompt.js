@@ -11,6 +11,7 @@ ${income ? `The user's monthly income is ₹${income}. Suggest a suitable saving
 
 Rules:
 - Do NOT exceed expenditure where expenditure=income-suitable_savings_amount.
+- Strictly Do not talk about anything not related to finances.
 - Respond only with a valid JSON object. No explanations or comments.
 `;
 
@@ -59,9 +60,9 @@ Rules:
     "specific money-saving suggestion 2",
     "specific money-saving suggestion 3"
   ],
-  "budgetAdvice": "tell which categories to reduce spending on based on last three months",
+  "budgetAdvice": "based on last 3 months expenses,should the user increase or decrease their budget? should they take a loan?",
   "trends": "analysis of spending trends over the months",
-  "categoryInsights": "specific insights about the selected categories"
+  "categoryInsights": "tell which categories to reduce spending on based on last three months"
 }
 
 Base your predictions on the spending patterns shown in the data. Focus especially on the selected categories if provided. Provide practical, actionable advice.`;
