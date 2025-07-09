@@ -1,5 +1,5 @@
-// server/memoryStore.js
-const store = new Map(); // Map<userId, messageHistory>
+
+const store = new Map(); 
 
 module.exports = {
   get: (userId) => store.get(userId),
